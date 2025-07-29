@@ -27,7 +27,7 @@ rpcAddHandler(SYMBOL_1, async function handler_1(options, { origin }) {
 			// https://issues.chromium.org/issues/41293818
 			setIntervalFragile(async () => {
 				// WORKAROUND: clean up when stream closed
-				// https://github.com/whatwg/streams/pull/1283
+				// https://github.com/whatwg/streams/issues/1212
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1856103
 				// https://issues.chromium.org/issues/40934382
 				controller.enqueue(new Uint8Array(0));
