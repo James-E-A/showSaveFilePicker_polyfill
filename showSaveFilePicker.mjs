@@ -7,7 +7,12 @@ const ONE_SECOND = 1_000;
 const FIVE_SECONDS = 5_000;
 const TEN_SECONDS = 10_000;
 
-const helperURL = new URL("./helper.html", import.meta.url).toString();
+const helperURL = (
+	new URL(
+		new URLSearchParams(new URL(import.meta.url).search).get("helperURL") ?? "./helper.html",
+		import.meta.url
+	)
+).toString();
 const helperOrigin = new URL(helperURL).origin;
 
 const _showSaveFilePicker = freshWindow().showSaveFilePicker;
