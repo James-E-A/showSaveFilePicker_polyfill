@@ -29,7 +29,8 @@ rpcAddHandler(SYMBOL_1, async function handler_1(options, { origin }) {
 				// WORKAROUND: clean up when stream closed
 				// https://github.com/whatwg/streams/issues/1212
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1856103
-				// https://issues.chromium.org/issues/40934382
+				// https://issues.chromium.org/issues/40283531
+				// https://bugs.webkit.org/show_bug.cgi?id=262424
 				controller.enqueue(new Uint8Array(0));
 				await rpcCall(worker, SYMBOL_3, undefined, { timeout: FIVE_SECONDS });
 			}, TEN_SECONDS);
