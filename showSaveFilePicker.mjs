@@ -13,7 +13,7 @@ const helperOrigin = new URL(helperURL).origin;
 const _showSaveFilePicker = freshWindow().showSaveFilePicker;
 
 
-export default async function showSaveFilePicker(options) {
+export async function showSaveFilePicker(options) {
 	if (_showSaveFilePicker && !(options._usePolyfill))
 		return _showSaveFilePicker(options);
 
@@ -21,6 +21,9 @@ export default async function showSaveFilePicker(options) {
 	let writable = await rpcCall(helper, SYMBOL_1, options, { targetOrigin: helperOrigin });
 	return new FakeWritableFileSystemFileHandle(writable);
 }
+
+
+export default (_showSaveFilePicker || showSaveFilePicker);
 
 
 var _helper = new Promise((resolve, reject) => {
