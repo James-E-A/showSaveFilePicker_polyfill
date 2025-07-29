@@ -21,8 +21,16 @@ rpcAddHandler(SYMBOL_1, async function handler_1(options, { origin }) {
 
 	let { readable, writable } = new TransformStream({
 		start(controller) {
+			// WORKAROUND: need heartbeat
+			// https://github.com/w3c/ServiceWorker/issues/882
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=1302715
+			// https://issues.chromium.org/issues/41293818
 			setIntervalFragile(async () => {
-				controller.enqueue(new Uint8Array(0)); // WORKAROUND: https://bugzilla.mozilla.org/show_bug.cgi?id=1856103
+				// WORKAROUND: clean up when stream closed
+				// https://github.com/whatwg/streams/pull/1283
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=1856103
+				// https://issues.chromium.org/issues/40934382
+				controller.enqueue(new Uint8Array(0));
 				await rpcCall(worker, SYMBOL_3, undefined, { timeout: FIVE_SECONDS/2 });
 			}, TEN_SECONDS);
 		},
