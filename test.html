@@ -2,13 +2,12 @@
 <html>
 <head>
 <script type="module">
-import showSaveFilePicker_ from "./showSaveFilePicker.mjs";
+import { showSaveFilePicker } from "./showSaveFilePicker.mjs";
 
-if (!("showSaveFilePicker" in window))
-	window.showSaveFilePicker = showSaveFilePicker_;
+window._showSaveFilePicker = showSaveFilePicker;
 
-console.info(showSaveFilePicker_);
+console.info(showSaveFilePicker);
 </script>
 </head>
-<body><button onclick="showSaveFilePicker()">showSaveFilePicker()</button></body>
+<body><button onclick="window._showSaveFilePicker({ _usePolyfill: true })">showSaveFilePicker({ _usePolyfill: true })</button></body>
 </html>
