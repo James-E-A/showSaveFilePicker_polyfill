@@ -11,9 +11,11 @@ const STREAMS = new Map(); // can't use self.caches for this because that can't 
 
 
 onfetch = function onfetch(event) {
-	let response = STREAMS.get(stripURL(event.request.url));
+	let key = stripURL(event.request.url);
+	let response = STREAMS.get(key);
 	if (response !== undefined) {
 		event.respondWith(response);
+		STREAMS.delete(key);
 		return;
 	}
 }
