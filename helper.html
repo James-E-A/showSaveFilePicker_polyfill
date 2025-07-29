@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<script>
+const SYMBOL_0 = "24210c56-6c8a-11f0-8000-fcd436b36def"; // establishment
+const SYMBOL_1 = "24210c56-6c8a-11f0-8001-fcd436b36def"; // call to helper
+const SYMBOL_2 = "24210c56-6c8a-11f0-8002-fcd436b36def"; // call to worker
+const SYMBOL_3 = "24210c56-6c8a-11f0-8003-fcd436b36def"; // heartbeat
+
+const ONE_SECOND = 1_000;
+const FIVE_SECONDS = 5_000;
+const TEN_SECONDS = 10_000;
+
+const workerURL = new URL("./sw.js", window.location).toString();
+const virtualURL = new URL("./sw.cgi/", window.location).toString();
+
+
+rpcAddHandler(SYMBOL_1, async function handler_1(options, { origin }) {
+	let worker = await _worker;
+
+	let { readable, writable } = new TransformStream({
+		start(controller) {
+			setIntervalFragile(async () => {
+				controller.enqueue(new Uint8Array(0)); // WORKAROUND: https://bugzilla.mozilla.org/show_bug.cgi?id=1856103
+				await rpcCall(worker, SYMBOL_3, undefined, { timeout: FIVE_SECONDS/2 });
+			}, TEN_SECONDS);
+		},
+	});
+
+	let url = await rpcCall(worker, SYMBOL_2, { requestorOrigin: origin, untrustedOptions: options, readable }, { transfer: [readable] });
+
+	openURL(url, options?.suggestedName);
+
+	return writable;
+}, { transferResult: true });
+
+
+var _worker = getOrStartWorker("./sw.cgi", "./sw.js", "./sw.cgi/stream/_/_");
+
+
+_worker.then(
+	() => {
+		rpcCall((window.opener || window.parent), SYMBOL_0, { ready: true }, { targetOrigin: "*" });
+	},
+	(error) => {
+		rpcCall((window.opener || window.parent), SYMBOL_0, { ready: false, error: error }, { targetOrigin: "*" });
+	}
+);
+
+
+/* methods */
+
+async function getOrStartWorker(scopeURL, workerURL, scopeTestURL) {
+	let registration = await navigator.serviceWorker.getRegistration(scopeTestURL ?? scopeURL);
+
+	if (registration === undefined) {
+		registration = await navigator.serviceWorker.register(workerURL, { scope: scopeURL });
+	} else {
+		try {
+			registration = await registration.update();
+		} catch (error) {
+			console.warn(error);
+			// use existing registration
+		}
+	}
+
+	let worker = registration.active || registration.waiting || registration.installing;
+
+	while (true) {
+		switch (worker.state) {
+			case "parsed":
+			case "installing":
+			case "installed":
+			case "activating":
+				break;
+
+			case "activated":
+				return worker;
+
+			case "redundant":
+				// FIXME there should be a better way to approach this
+				throw new Error("redundant", { cause: worker });
+		}
+
+		await new Promise((resolve) => void worker.addEventListener("statechange", resolve, { once: true }));
+	}
+}
+
+
+function openURL(url, suggestedName=null) {
+	let e = document.createElement("a");
+	e.href = url;
+	e.target = "_blank";
+	e.hidden = true;
+	if (suggestedName !== null) {
+		e.download = e.textContent = suggestedName;
+	} else {
+		let path = new URL(url).pathname.split('/');
+		e.textContent = path[path.length - 1] || url;
+	}
+
+	document.body.appendChild(e);
+	e.click();
+
+	setTimeout((e) => e.parentElement.removeChild(e), TEN_SECONDS, e);
+}
+
+
+function rpcAddHandler(method_, handler, options) {
+	let onceController = new AbortController(),
+	    once = options?.once ?? false,
+	    source_ = options?.source,
+	    transferResult = options?.transferResult ?? false;
+
+	self.addEventListener("message", async ({ data, origin, source }) => {
+		if (source_ !== undefined && source !== source_)
+			return;
+		if (!(data instanceof Object))
+			return;
+
+		let { method, params, replyPort } = data;
+
+		if (method !== method_)
+			return;
+
+		if (once)
+			onceController.abort(null);
+
+		reply: {
+			try {
+				try {
+					var result = await handler(params, { origin, source });
+				} catch (error) {
+					// error executing handler
+					replyPort.postMessage({ error });
+					break reply;
+				}
+				// happy path
+				replyPort.postMessage({ result }, { transfer: transferResult ? [result] : [] });
+			} catch (error) {
+				// error serializing reply
+				replyPort.postMessage({ error });
+			}
+		}
+	}, { signal: onceController.signal });
+}
+
+
+async function rpcCall(target, method, params, options) {
+	let targetOrigin = options?.targetOrigin,
+	    timeout = options?.timeout,
+	    transfer = options?.transfer ?? [];
+
+	if (timeout === undefined)
+		timeout = FIVE_SECONDS;
+
+	return await new Promise((resolve, reject) => {
+		let { port1, port2 } = new MessageChannel();
+
+		target.postMessage(
+			{ method, params, replyPort: port2 },
+			{ targetOrigin, transfer: transfer.concat([port2]) }
+		);
+
+		port1.onmessage = ({ data }) => {
+			if ("result" in data)
+				resolve(data.result);
+			else
+				reject(data.error);
+		};
+
+		port1.onmessageerror = (event) => {
+			reject(event.error || new Error(`${event.target.__proto__.constructor.name}: ${event.type} event`, { cause: event }));
+		};
+
+		if (timeout !== null)
+			setTimeout(() => void reject(new DOMException("Timed out waiting for RPC call.", "TimeoutError")), timeout);
+	});
+}
+
+
+function setIntervalFragile(callback, timeout, ...args) {
+	const intervalId = setInterval(
+		async (...args) => {
+			try {
+				await callback(...args);
+			} catch (error) {
+				clearInterval(intervalId);
+				console.debug("[setIntervalFragile] Cancelled: %s", error.message);
+			}
+		},
+		timeout,
+		...args
+	);
+	return intervalId;
+}
+
+
+function stripURL(s) {
+	let u = new URL(s);
+	u.hash = "";
+	u.search = "";
+	return u.toString();
+}
+</script>
+</head>
+<body></body>
+</html>
