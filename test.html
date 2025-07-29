@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="module">
+import showSaveFilePicker_ from "./showSaveFilePicker.mjs";
+
+if (!("showSaveFilePicker" in window))
+	window.showSaveFilePicker = showSaveFilePicker_;
+
+console.info(showSaveFilePicker_);
+</script>
+</head>
+<body><button onclick="showSaveFilePicker()">showSaveFilePicker()</button></body>
+</html>
