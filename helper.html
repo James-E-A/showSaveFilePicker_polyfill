@@ -105,7 +105,8 @@ function openURL(url, suggestedName=null) {
 	if (suggestedName !== null) {
 		e.download = e.textContent = suggestedName;
 	} else {
-		let path = new URL(url).pathname.split('/');
+		let pathname = new URL(url).pathname.match(/[^;]*/)[0];
+		let path = pathname.split('/');
 		e.textContent = path[path.length - 1] || url;
 	}
 
