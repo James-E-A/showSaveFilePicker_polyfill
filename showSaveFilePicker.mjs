@@ -68,6 +68,12 @@ var _helper = new Promise((resolve, reject) => {
 
 /* methods */
 
+var Blob_bytes = Blob.bytes ?? function bytes() {
+	// https://issues.chromium.org/issues/340200022
+	return this.arrayBuffer().then((buffer) => new Uint8Array(buffer));
+};
+
+
 class FakeWritableFileSystemFileHandle {
 	_writable;
 	constructor(writable) {
@@ -79,11 +85,32 @@ class FakeWritableFileSystemFileHandle {
 	}
 
 	async createWritable() {
-		return this._writable;
+		return TransformStream_wrapWritable.call(
+			new TransformStream(new this.__proto__.constructor.#transformer()),
+			this._writable
+		);
 	}
 
 	async getFile() {
 		throw new DOMException("getFile not available.", "NotImplementedError");
+	}
+
+	static #transformer = class {
+		async transform(chunk, controller) {
+			// https://developer.mozilla.org/en-US/docs/Web/API/Response/Response#body
+			if (chunk instanceof Uint8Array)
+				controller.enqueue(chunk);
+			else if (chunk instanceof _TypedArray || chunk instanceof DataView)
+				controller.enqueue(new Uint8Array(chunk.buffer)); // zero-copy cast
+			else if (chunk instanceof Blob)
+				controller.enqueue(await Blob_bytes.call(chunk));
+			else if (typeof chunk === "string" || chunk instanceof String)
+				controller.enqueue(this.#encoder.encode(chunk)); // FIXME: encoding?
+			else
+				throw new TypeError("chunk must be Blob, ArrayBuffer, TypedArray, or DataView");
+		}
+
+		#encoder = new TextEncoder();
 	}
 }
 
@@ -178,3 +205,13 @@ function stripURL(s) {
 	u.search = "";
 	return u.toString();
 }
+
+
+function TransformStream_wrapWritable(writable, options) {
+	// https://stackoverflow.com/questions/78547919/piping-a-writablestream-through-a-transformstream
+	this.readable.pipeTo(writable, options);
+	return this.writable;
+}
+
+
+var _TypedArray = Object.getPrototypeOf(Uint8Array);
