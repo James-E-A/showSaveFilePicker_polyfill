@@ -214,5 +214,13 @@ function stripURL(s) {
 }
 </script>
 </head>
-<body></body>
+<body><script>(async (currentScript) => {
+	await new Promise((resolve) => void window.requestAnimationFrame(resolve));
+
+	let e = document.createElement('pre'),
+	    e1 = document.createElement('code');
+	e.appendChild(e1);
+	e1.textContent = document.scripts[0].outerHTML;
+	currentScript.parentElement.appendChild(e);
+})(document.currentScript).then((value) => {if (value !== undefined) console.debug(value)}, (error) => {console.error(error); debugger;});</script></body>
 </html>
