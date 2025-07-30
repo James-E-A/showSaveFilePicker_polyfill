@@ -39,7 +39,7 @@ var _helper = new Promise((resolve, reject) => {
 
 	let settled = new AbortController();
 	resolve = ((c, f) => (value) => (c.abort(null), f(value)))(settled, resolve);
-	reject = ((c, f) => (reason) => (c.abort(reason), f(reason)))(settled, reject);
+	reject = ((c, f) => (reason) => (c.abort(reason ?? undefined), f(reason)))(settled, reject);
 
 	let helperFrame = document.createElement("iframe");
 	helperFrame.src = helperURL;
@@ -49,10 +49,9 @@ var _helper = new Promise((resolve, reject) => {
 	settled.signal.addEventListener('abort', ({ target: { reason: error } }) => {
 		if (error === null) {
 			console.info("showSaveFilePicker helper OK");
-			return;
+		} else {
+			helperFrame.parentElement.removeChild(helperFrame);
 		}
-
-		helperFrame.parentElement.removeChild(helperFrame);
 	});
 
 	rpcAddHandler(SYMBOL_0, ({ ready, error }, { source }) => {
