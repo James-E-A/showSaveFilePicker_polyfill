@@ -2,21 +2,40 @@ const SYMBOL_0 = "24210c56-6c8a-11f0-8000-fcd436b36def"; // establishment
 const SYMBOL_1 = "24210c56-6c8a-11f0-8001-fcd436b36def"; // call to helper
 const SYMBOL_2 = "24210c56-6c8a-11f0-8002-fcd436b36def"; // call to worker
 const SYMBOL_3 = "24210c56-6c8a-11f0-8003-fcd436b36def"; // heartbeat
+const CACHE_0 = "c046f804-6d83-11f0-8000-fcd436b36def";
 
 const ONE_SECOND = 1_000;
 const FIVE_SECONDS = 5_000;
 const TEN_SECONDS = 10_000;
 
+const helperURL = new URL("./helper.html", self.location).toString();
+
+// Allow using the helper if you were *ever* online
+self.addEventListener('install', (event) => {
+	// note: NOT using waitUntil because this is NOT essential functionality; we can still serve streams just fine without it
+	// and after all, it's virtually certain that the helper was already running/loaded to wake us up in the first place...
+	self.caches.open(CACHE_0)
+	.then((cache) => cache.add(helperURL));
+});
+
 const STREAMS = new Map(); // can't use self.caches for this because that can't hold dynamic Response objects
 
 
-onfetch = function onfetch(event) {
-	let key = stripURL(event.request.url);
-	let response = STREAMS.get(key);
-	if (response !== undefined) {
-		event.respondWith(response);
-		STREAMS.delete(key);
-		return;
+onfetch = async function onfetch(event) {
+	{
+		let key = stripURL(event.request.url);
+		let response = STREAMS.get(key);
+		if (response !== undefined) {
+			event.respondWith(response);
+			STREAMS.delete(key);
+			return;
+		}
+	}
+
+	{
+		let _response = caches.match(event.request, { ignoreSearch: true, cacheName: CACHE_0 });
+		event.respondWith(_response);
+		await _response;
 	}
 }
 

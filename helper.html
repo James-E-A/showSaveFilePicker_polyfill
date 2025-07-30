@@ -13,7 +13,7 @@ const FIVE_SECONDS = 5_000;
 const TEN_SECONDS = 10_000;
 
 const workerURL = new URL("./sw.js", window.location).toString();
-const virtualURL = new URL("./sw.cgi/", window.location).toString();
+const virtualURL = new URL("./sw.cgi/_/_", window.location).toString();
 
 
 rpcAddHandler(SYMBOL_1, async function handler_1(options, { origin }) {
@@ -45,7 +45,7 @@ rpcAddHandler(SYMBOL_1, async function handler_1(options, { origin }) {
 }, { transferResult: true });
 
 
-var _worker = getOrStartWorker("./sw.cgi", "./sw.js", "./sw.cgi/stream/_/_");
+var _worker = getOrStartWorker("./", workerURL, virtualURL);
 
 
 _worker.then(
