@@ -19,7 +19,7 @@ const _showSaveFilePicker = freshWindow().showSaveFilePicker;
 
 
 export async function showSaveFilePicker(options) {
-	if (_showSaveFilePicker && !(options._usePolyfill))
+	if (_showSaveFilePicker && !(options?._usePolyfill))
 		return _showSaveFilePicker(options);
 
 	let helper = await _helper;
