@@ -15,7 +15,7 @@ const helperURL = (
 ).toString();
 const helperOrigin = new URL(helperURL).origin;
 
-const _showSaveFilePicker = freshWindow().showSaveFilePicker;
+const _showSaveFilePicker = freshWindow().showSaveFilePicker?.bind(window);
 
 
 export async function showSaveFilePicker(options) {
