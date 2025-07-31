@@ -56,7 +56,11 @@ rpcAddHandler(SYMBOL_2, function handler_2({ requestorOrigin, untrustedOptions, 
 	let response = new Response(
 		readable,
 		{ headers: {
-			"Content-Disposition": "attachment",
+			"Content-Disposition": (
+				suggestedName === undefined
+				? "attachment"
+				: `attachment; filename*=UTF-8''${encodeURIComponent(suggestedName)}`
+			),
 		} }
 	);
 
